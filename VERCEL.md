@@ -12,7 +12,7 @@ environment. Follow the steps below with your own Vercel account.
 1. Push this repository to GitHub/GitLab/Bitbucket.
 2. In Vercel, choose **Add New → Project** and import the repository **with the repository root as the root directory**.
 3. Vercel will detect `vercel.json`:
-   - Build command: `npm --prefix frontend install && npm --prefix frontend run build`
+   - Build command: `npm --prefix frontend install --include=dev && npm --prefix frontend run build`
    - Output directory: `frontend/dist`
    - SPA fallback rewrites are included, so `/review`, `/ledger`, etc. work on refresh.
 4. Add the frontend environment variable:
