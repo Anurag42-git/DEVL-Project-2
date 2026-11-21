@@ -1,0 +1,22 @@
+services:
+  app:
+    build: .
+    image: transaction-investigation:latest
+    container_name: transaction-investigation
+    ports:
+      - "8000:8000"
+    environment:
+      REVIEW_DB_PATH: /app/state/review.db
+    volumes:
+      # Review outcomes and the audit trail survive container replacement.
+      - review-state:/app/state
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+
+volumes:
+  review-state:

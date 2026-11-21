@@ -1,0 +1,16 @@
+.git
+.gitignore
+.pytest_cache
+__pycache__
+*.py[cod]
+data/
+reports/
+legacy/
+tests/
+docs/
+frontend/node_modules
+frontend/dist
+frontend/.env
+frontend/coverage
+*.md
+!README.md

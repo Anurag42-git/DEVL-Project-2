@@ -1,0 +1,243 @@
+# Central configuration for Transaction Anomaly and Refund Investigation.
+# All thresholds, weights, file names and generation parameters live here.
+project:
+  name: Transaction Anomaly and Refund Investigation
+  disclaimer: "Flags are review triggers for unusual patterns, not fraud determinations."
+  log_level: INFO
+
+data:
+  directory: data
+  reports_directory: reports
+  review_db: data/review.db
+  files:
+    customers: customers.csv
+    merchants: merchants.csv
+    transactions: transactions.csv
+    refunds: refunds.csv
+    payment_status: payment_status.csv
+    device_summary: device_summary.csv
+  ground_truth: .ground_truth.csv
+  generation:
+    seed: 20240617
+    n_customers: 250
+    n_merchants: 40
+    n_devices: 220
+    n_transactions: 1200
+    countries: [US, GB, DE, FR, CA, AU]
+    currencies: [USD, EUR, GBP]
+    categories: [retail, electronics, travel, gaming, food, services, marketplace]
+    risk_segments: [low, medium, high]
+    risk_segment_weights: [0.70, 0.22, 0.08]
+    activity_start: "2024-04-01"
+    activity_end: "2024-05-31"
+    amount_log_mean: 5.0
+    amount_log_sigma: 0.75
+    amount_min: 5.0
+    amount_max: 2500.0
+    capture_probability: 0.88
+    fail_probability: 0.09
+    void_probability: 0.03
+    retry_probability: 0.05
+    refund_probability: 0.07
+    full_refund_probability: 0.35
+
+validation:
+  future_tolerance_minutes: 120
+  allowed_currencies: [USD, EUR, GBP]
+  allowed_event_types: [authorization, capture, retry, void]
+  allowed_statuses: [pending, authorized, captured, partially_refunded, refunded, failed, voided]
+  allowed_refund_statuses: [completed, pending, failed]
+  terminal_statuses: [failed, voided, refunded]
+  capture_statuses: [captured]
+  refund_statuses: [refunded, partially_refunded]
+  allowed_transitions:
+    pending: [pending, authorized, failed]
+    authorized: [authorized, captured, failed, voided]
+    captured: [captured, partially_refunded, refunded, failed]
+    partially_refunded: [partially_refunded, refunded]
+    refunded: []
+    failed: []
+    voided: []
+  severity:
+    DUPLICATE_EVENT_ID: medium
+    AMOUNT_NOT_NUMERIC: high
+    AMOUNT_NOT_POSITIVE: high
+    CURRENCY_NOT_ALLOWED: medium
+    CURRENCY_MISMATCH: high
+    REFUND_EXCEEDS_CAPTURED: high
+    TIMESTAMP_NOT_PARSEABLE: high
+    TIMESTAMP_IN_FUTURE: high
+    REFUND_BEFORE_CAPTURE: high
+    EVENTS_OUT_OF_ORDER: medium
+    INVALID_STATUS_TRANSITION: high
+    UNKNOWN_STATUS_VALUE: medium
+    UNKNOWN_EVENT_TYPE: medium
+    UNKNOWN_REFUND_STATUS: medium
+    ORPHAN_CUSTOMER: high
+    ORPHAN_MERCHANT: high
+    ORPHAN_TRANSACTION: high
+    ORPHAN_DEVICE: medium
+
+reconcile:
+  capture_event_types: [capture]
+  capture_statuses: [captured]
+  completed_refund_statuses: [completed]
+  duplicate_notes_limit: 20
+
+indicators:
+  windows:
+    one_hour: 1h
+    twenty_four_hour: 24h
+    seven_day: 7d
+  min_baseline_samples: 8
+  mad_scale: 1.4826
+  round_denominators: [100, 500, 1000]
+  fast_refund_minutes: 10
+  min_captured_for_ratio: 25.0
+  entity_types: [customer, merchant, device]
+
+scoring:
+  flag_min_score: 10
+  medium_priority_score: 22
+  high_priority_score: 45
+  max_score: 100
+  # Optional secondary signal. Rules ALWAYS provide the reason; this can never be the only one.
+  isolation_forest:
+    enabled: false
+    contamination: 0.03
+    weight: 8
+    random_state: 7
+  rules:
+    - code: INVALID_AMOUNT
+      record_types: [transaction]
+      field: invalid_amount_count
+      operator: ">="
+      threshold: 1
+      weight: 25
+      explanation: "One or more events have a non-positive or non-numeric amount."
+    - code: FUTURE_TIMESTAMP
+      record_types: [transaction]
+      field: future_timestamp_count
+      operator: ">="
+      threshold: 1
+      weight: 18
+      explanation: "One or more event timestamps are in the future relative to generation/validation time."
+    - code: OUT_OF_ORDER_TIMESTAMP
+      record_types: [transaction]
+      field: out_of_order_count
+      operator: ">="
+      threshold: 1
+      weight: 12
+      explanation: "Event timestamps are not in lifecycle order (for example, capture before authorization)."
+    - code: CURRENCY_MISMATCH
+      record_types: [transaction]
+      field: currency_mismatch_count
+      operator: ">="
+      threshold: 1
+      weight: 15
+      explanation: "Events of the same transaction use more than one currency."
+    - code: INVALID_STATUS_TRANSITION
+      record_types: [transaction]
+      field: invalid_transition_count
+      operator: ">="
+      threshold: 1
+      weight: 22
+      explanation: "The recorded status history contains a transition that is not allowed by the state machine."
+    - code: ORPHAN_REFERENCE
+      record_types: [transaction]
+      field: orphan_reference_count
+      operator: ">="
+      threshold: 1
+      weight: 24
+      explanation: "The transaction references a customer, merchant, device or transaction id that does not exist."
+    - code: OVER_REFUND
+      record_types: [transaction]
+      field: over_refund_amount
+      operator: ">"
+      threshold: 0
+      weight: 28
+      explanation: "Completed refunds exceed the captured amount."
+    - code: DUPLICATE_EVENT
+      record_types: [transaction]
+      field: duplicate_events_removed
+      operator: ">="
+      threshold: 1
+      weight: 16
+      explanation: "The same event id was recorded more than once; copies were collapsed during reconciliation."
+    - code: RETRY_STORM
+      record_types: [transaction]
+      field: retry_count
+      operator: ">="
+      threshold: 5
+      weight: 18
+      explanation: "An unusually large number of retry events were recorded for one transaction."
+    - code: HIGH_REFUND_RATIO
+      record_types: [transaction]
+      field: refund_ratio_amount
+      operator: ">="
+      threshold: 0.70
+      weight: 16
+      explanation: "Completed refunds are a large share of the captured amount."
+    - code: FAST_REFUND
+      record_types: [transaction]
+      field: fast_refund_minutes
+      operator: "<="
+      threshold: 10
+      weight: 14
+      explanation: "A refund was recorded very shortly after capture."
+    - code: AMOUNT_OUTLIER
+      record_types: [transaction]
+      field: amount_zscore_abs
+      operator: ">="
+      threshold: 4.5
+      weight: 12
+      explanation: "The captured amount deviates strongly from this customer's typical amount."
+    - code: BURST_ACTIVITY
+      record_types: [customer, merchant, device]
+      field: max_txns_1h
+      operator: ">="
+      threshold: 8
+      weight: 20
+      explanation: "An unusual burst of transactions occurred within a one-hour window."
+    - code: REPEATED_FAILED_ATTEMPTS
+      record_types: [customer, merchant, device]
+      field: failed_streak
+      operator: ">="
+      threshold: 5
+      weight: 20
+      explanation: "Several failed payment attempts were recorded consecutively."
+    - code: SHARED_DEVICE
+      record_types: [device]
+      field: distinct_customers
+      operator: ">="
+      threshold: 5
+      weight: 22
+      explanation: "One device is associated with many different customers."
+    - code: ROUND_AMOUNT_PATTERN
+      record_types: [customer, merchant]
+      field: round_amount_ratio
+      operator: ">="
+      threshold: 0.60
+      weight: 12
+      explanation: "A large share of transactions use round amounts."
+    - code: MERCHANT_HIGH_FAILURE
+      record_types: [merchant]
+      field: failure_rate
+      operator: ">="
+      threshold: 0.35
+      weight: 16
+      explanation: "A large share of payment attempts on this merchant failed."
+    - code: ENTITY_HIGH_REFUND
+      record_types: [merchant, device]
+      field: refund_ratio_amount
+      operator: ">="
+      threshold: 0.35
+      weight: 14
+      explanation: "Refunds are a large share of captured amount for this entity."
+
+# Production serving configuration. The API serves the built SPA from static_dir
+# so one process is enough for a single-origin deployment.
+deployment:
+  static_dir: frontend/dist
+  host: 0.0.0.0
+  port: 8000

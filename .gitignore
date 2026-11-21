@@ -1,0 +1,25 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.streamlit/
+.venv/
+venv/
+
+# Generated data, review database and reports
+data/*.csv
+data/.*.csv
+data/*.db
+reports/*.md
+reports/*.html
+reports/*.csv
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+frontend/.env.local
+frontend/coverage/
+
+# Editor/OS files
+.DS_Store
+Thumbs.db
