@@ -1,18 +1,20 @@
-.git
-.github
-.pytest_cache
+# Root-level files only; patterns without a leading slash would also match
+# frontend/src and break the Vite build.
+/.git
+/.github
+/.pytest_cache
 __pycache__
 *.py[cod]
 node_modules
-frontend/node_modules
-frontend/dist
-frontend/coverage
-legacy
-data
-reports
-tests
-api
-src
-scripts
+/frontend/node_modules
+/frontend/dist
+/frontend/coverage
+/legacy
+/data
+/reports
+/tests
+/api
+/src
+/scripts
 *.md
 !README.md
