@@ -7,6 +7,19 @@ polished FastAPI + React web frontend.
 > **Disclaimer:** records are flagged for review because they show unusual patterns. Flags are
 > review triggers, not determinations of intent. The UI never uses fraud labels.
 
+## Live demo
+
+| Service | URL |
+|---|---|
+| Frontend (Vercel) | <https://devl-project-2.vercel.app> |
+| Frontend (branch preview) | <https://devl-project-2-git-main-anuragpatil9890-1202s-projects.vercel.app> |
+| API (Render) | <https://devl-project-2-api.onrender.com> |
+| API docs | <https://devl-project-2-api.onrender.com/docs> |
+
+The frontend is a static Vite deployment on Vercel; the FastAPI backend runs as a Docker Web
+Service on Render with Vercel KV (Upstash Redis) for review outcomes. The Render free tier may
+sleep after inactivity, so the first request can take up to a minute.
+
 ## Quick start
 
 ```bash

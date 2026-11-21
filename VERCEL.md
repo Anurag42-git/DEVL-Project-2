@@ -1,5 +1,8 @@
 # Vercel deployment (frontend only)
 
+**Live deployment:** <https://devl-project-2.vercel.app>  
+**Live API:** <https://devl-project-2-api.onrender.com>
+
 This repository is configured to publish the **React frontend** to Vercel as a static Vite site.
 The FastAPI backend stays on a container host (Render, Fly, Railway, Cloud Run, etc.) because
 it needs a long-lived Python process for the cached pipeline and SQLite/KV-backed reviews.
