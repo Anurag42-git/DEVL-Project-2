@@ -1,0 +1,15 @@
+name: Keep Render backend warm
+
+on:
+  schedule:
+    # Render free web services sleep after ~15 minutes of inactivity.
+    # Ping every 5 minutes so the first real user request is not a cold start.
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping API health endpoint
+        run: curl --fail --silent --show-error https://devl-project-2-api.onrender.com/api/health
